@@ -320,7 +320,7 @@ eval_datasets/
   experiments/             # Candidate units and assessments; ignored by default
   runs/                    # Full evaluator run intake; ignored by default
   replay/                  # Optional lightweight replay configs and outputs
-  evolution/               # Event logs and failure patterns; ignored by default
+  evolution/               # Event logs, failure patterns, and calibration notes
 ```
 
 For doc routing, start with `eval_datasets/methodology/README.md`.
@@ -344,6 +344,11 @@ Local capability registries also stay private by default:
 - `eval_datasets/**/*.local.*`
 - `eval_datasets/evolution/events.jsonl`
 - `eval_datasets/evolution/failure_patterns/`
+
+`eval_datasets/evolution/calibration_heuristics.jsonl` is a public synthetic
+template for lifecycle-bound machine-human calibration heuristics. Keep real
+private calibration evidence in downstream or gitignored local files until it is
+scrubbed and intentionally generalized.
 
 Store private or large project data locally, in the downstream project, or in a
 private data store. Use Hugging Face or another shared dataset host only after

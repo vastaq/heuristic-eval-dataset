@@ -11,6 +11,8 @@ load every methodology document by default.
   observe/classify/action/replay/reward/compress loop.
 - `human_signal_capture.md`: how short user judgments become durable heuristic
   evidence without a heavy labeling workflow.
+- `calibration_heuristics.md`: how weak machine-human calibration notes become
+  lifecycle-bound heuristics without turning into a bloated rule notebook.
 
 ## Common Routes
 
@@ -86,6 +88,17 @@ Use when cloned character voices need source-bank governance, anchor/negative
 management, human A/B review, clone-version regression, and failure routing.
 This route should not ship real audio, speaker identities, transcripts, or
 private voice prompts in the public framework repo.
+
+### Machine-Human Calibration
+
+Read:
+
+- `calibration_heuristics.md`
+- `evolution_event_log.md`
+
+Use when machine metrics and human review disagree or partially agree, and the
+agent needs to decide whether a signal is only a run note, a weak hypothesis, or
+a candidate heuristic. Do not promote single-run observations into active rules.
 
 ## Advanced System References
 

@@ -15,12 +15,16 @@ The framework is shared across eval domains:
 - Learning state.
 - Run intake.
 - Reward and compression decisions.
+- Calibration heuristic lifecycle.
 - Prompt-bloat or policy-bloat gates.
 - Stop rules.
 - Legacy learning bootstrap.
 
 Framework documents should avoid project-specific field assumptions whenever
 possible.
+For calibration work, the framework owns the lifecycle: claim strength, scope,
+support and contradiction counts, promotion, decay, and retirement. The profile
+owns signal interpretation.
 
 ### Profile
 
@@ -43,6 +47,7 @@ A profile owns:
 - acceptable-band definition
 - promotion evidence
 - bloat guardrail
+- signal interpretation for profile-specific metrics and reviews
 
 Profiles may reuse framework terms, but they should not force other profiles to
 inherit their fields. For example, `role`, `character_context`, and `scene_type`
@@ -50,6 +55,9 @@ belong to the current conversation-role profile. They are not universal fields.
 Shared failure-pattern files should follow the same rule: use `role` when the
 owner really is a role, or use `profile` / `domain` for non-role systems such as
 tool-use, retrieval, or content generation evals.
+Shared calibration heuristics follow the same rule: the lifecycle is shared, but
+prompt pass-rate interpretation belongs to prompt/conversation profiles, and
+audio quality or speaker-identity interpretation belongs to audio profiles.
 
 ### Adapter
 
@@ -93,6 +101,12 @@ New-domain agent checklist:
 
 Do not modify the shared framework just to satisfy one evaluator's file shape.
 Do not stuff non-conversation data into conversation-role fields.
+
+When one product needs multiple profiles, model it as a `project_run` that
+references profile-owned sub-runs rather than merging fields. For example, a
+character product can have one `conversation_role` run for text behavior and one
+`voice_clone_asset` run for voice behavior, then write a combined route decision
+that checks whether both are inside their acceptable bands.
 
 ## Minimum Module Patch
 

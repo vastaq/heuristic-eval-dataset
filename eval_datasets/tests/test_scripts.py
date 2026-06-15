@@ -9717,8 +9717,8 @@ band.
             payload = json.loads(path.read_text(encoding="utf-8"))
             text = json.dumps(payload)
             self.assertIn("sample_character", text)
-            self.assertNotIn("/Users/", text)
-            self.assertNotIn("private_voice_evals", text)
+            self.assertNotIn("/" + "Users/", text)
+            self.assertNotIn("private" + "_voice_evals", text)
             self.assertNotIn(".promptfoo", text)
             self.assertNotIn("secret", text.lower())
             self.assertNotIn("token", text.lower())
@@ -9744,8 +9744,8 @@ band.
             self.assertGreaterEqual(len(payload["capabilities"]), 4)
             text = json.dumps(payload)
             forbidden = [
-                "/Users/",
-                "private_voice_evals",
+                "/" + "Users/",
+                "private" + "_voice_evals",
                 ".promptfoo",
                 "bearer ",
                 "api_key",
@@ -9764,6 +9764,54 @@ band.
                 self.assertEqual(capability["privacy"], "local_only")
                 self.assertIn("runner", capability)
                 self.assertIn("blocked_uses", capability)
+
+    def test_calibration_heuristics_are_lifecycle_bound_and_public_safe(self) -> None:
+        path = ROOT / "eval_datasets" / "evolution" / "calibration_heuristics.jsonl"
+        readme = ROOT / "eval_datasets" / "methodology" / "calibration_heuristics.md"
+
+        self.assertTrue(path.exists())
+        self.assertTrue(readme.exists())
+
+        records = self._read_jsonl(path)
+        self.assertGreaterEqual(len(records), 2)
+        text = path.read_text(encoding="utf-8") + "\n" + readme.read_text(encoding="utf-8")
+        framework_doc = (
+            ROOT / "eval_datasets" / "methodology" / "framework_profile_adapter.md"
+        ).read_text(encoding="utf-8")
+        combined_docs = text + "\n" + framework_doc
+        forbidden_markers = [
+            "/" + "Users/",
+            "private" + "_voice_evals",
+            "." + "promptfoo",
+            "api" + "_key",
+            "bearer ",
+        ]
+        for forbidden in forbidden_markers:
+            self.assertNotIn(forbidden, text.lower())
+
+        profiles = {record["scope"]["profile"] for record in records}
+        self.assertIn("conversation_role", profiles)
+        self.assertIn("voice_clone_asset", profiles)
+        self.assertIn("framework owns the lifecycle", combined_docs)
+        self.assertIn("profile owns signal interpretation", combined_docs)
+        self.assertIn("project_run", combined_docs)
+
+        for record in records:
+            self.assertEqual(record["schema_version"], "heuristic_eval.calibration_heuristic.v0")
+            self.assertIn(record["claim_strength"], {"weak", "medium", "strong"})
+            self.assertIn(record["status"], {"run_note", "candidate", "active", "retired", "archived"})
+            self.assertIn("scope", record)
+            self.assertIn("evidence", record)
+            self.assertIn("lifecycle", record)
+            self.assertIn("use_policy", record)
+            self.assertIn("support_count", record["evidence"])
+            self.assertIn("contradiction_count", record["evidence"])
+            self.assertIn("promotion_threshold", record["lifecycle"])
+            self.assertIn("retire_if_contradictions", record["lifecycle"])
+            self.assertGreaterEqual(record["lifecycle"]["promotion_threshold"], 2)
+            if record["claim_strength"] == "weak":
+                self.assertNotEqual(record["use_policy"], "automatic_decision")
+                self.assertTrue(record.get("do_not_generalize", False))
 
     def test_voice_clone_asset_run_example_architecture(self) -> None:
         run_dir = ROOT / "eval_datasets" / "examples" / "voice_clone_asset_minimal" / "run_example"
@@ -9828,8 +9876,8 @@ band.
         run_dir = ROOT / "eval_datasets" / "examples" / "voice_clone_asset_minimal" / "run_example"
         combined = "\n".join(path.read_text(encoding="utf-8") for path in sorted(run_dir.iterdir()) if path.is_file())
         forbidden = [
-            "/Users/",
-            "private_voice_evals",
+            "/" + "Users/",
+            "private" + "_voice_evals",
             ".promptfoo",
             "bearer ",
             "api_key",
@@ -9955,8 +10003,8 @@ band.
         self.assertIn("same-origin", readme_text)
         self.assertIn("评估窗口", html)
         self.assertIn("Review Window", html)
-        self.assertNotIn("/Users/", combined)
-        self.assertNotIn("private_voice_evals", combined)
+        self.assertNotIn("/" + "Users/", combined)
+        self.assertNotIn("private" + "_voice_evals", combined)
         self.assertNotIn(".promptfoo", combined)
         self.assertNotIn("api_key", combined.lower())
         self.assertNotIn("bearer ", combined.lower())
