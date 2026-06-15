@@ -1,5 +1,7 @@
 {
   "schema_version": "heuristic_eval.review_task.v0",
+  "checkpoint_id": "checkpoint_clone_ab_0001",
+  "return_to_run_id": "sample_character_ab_run_001",
   "task_id": "task_ab_0001",
   "task_type": "clone_ab_review",
   "profile": "voice_clone_asset",
@@ -20,6 +22,31 @@
     "similar",
     "neither",
     "uncertain"
+  ],
+  "review_mode": "blind_first",
+  "auto_signal_visibility": "collapsed",
+  "allowed_tags": [
+    "naturalness",
+    "speaker_identity",
+    "character_style",
+    "clarity",
+    "pacing",
+    "pronunciation"
+  ],
+  "tag_groups": [
+    {
+      "id": "ab_dimensions",
+      "label": "A/B dimensions",
+      "label_zh": "A/B 维度",
+      "tags": [
+        "naturalness",
+        "speaker_identity",
+        "character_style",
+        "clarity",
+        "pacing",
+        "pronunciation"
+      ]
+    }
   ],
   "evidence_refs": [
     "regression_result.sample.json"

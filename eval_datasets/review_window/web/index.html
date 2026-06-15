@@ -1,0 +1,1387 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>heuristic-eval review window</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --bg: #f7f8fa;
+      --panel: #ffffff;
+      --ink: #1c2026;
+      --muted: #667085;
+      --line: #d9dee7;
+      --accent: #0f766e;
+      --accent-soft: #e6f4f1;
+      --warn: #9a3412;
+      --warn-soft: #fff3e8;
+      --shadow: 0 1px 3px rgba(16, 24, 40, 0.08);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--ink);
+      font: 14px/1.45 system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    button,
+    input,
+    select,
+    textarea {
+      font: inherit;
+    }
+
+    header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      padding: 14px 20px;
+      background: var(--panel);
+      border-bottom: 1px solid var(--line);
+      position: sticky;
+      top: 0;
+      z-index: 5;
+    }
+
+    h1 {
+      font-size: 18px;
+      margin: 0;
+      font-weight: 650;
+    }
+
+    h2 {
+      font-size: 15px;
+      margin: 0 0 12px;
+      font-weight: 650;
+    }
+
+    h3 {
+      font-size: 14px;
+      margin: 0 0 8px;
+      font-weight: 650;
+    }
+
+    main {
+      display: grid;
+      grid-template-columns: minmax(260px, 340px) minmax(0, 1fr);
+      gap: 16px;
+      padding: 16px;
+      max-width: 1280px;
+      margin: 0 auto;
+    }
+
+    .panel {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      box-shadow: var(--shadow);
+    }
+
+    .sidebar,
+    .workspace {
+      min-height: calc(100vh - 86px);
+    }
+
+    .section {
+      padding: 14px;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .section:last-child {
+      border-bottom: 0;
+    }
+
+    .file-grid {
+      display: grid;
+      gap: 10px;
+    }
+
+    .file-row label {
+      display: block;
+      color: var(--muted);
+      font-size: 12px;
+      margin-bottom: 4px;
+    }
+
+    .file-row input {
+      width: 100%;
+    }
+
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 8px;
+    }
+
+    .stat {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 10px;
+      background: #fbfcfd;
+    }
+
+    .stat strong {
+      display: block;
+      font-size: 20px;
+      line-height: 1.1;
+    }
+
+    .stat span {
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .task-list {
+      display: grid;
+      gap: 8px;
+      max-height: 420px;
+      overflow: auto;
+    }
+
+    .task-item {
+      width: 100%;
+      text-align: left;
+      border: 1px solid var(--line);
+      background: #fff;
+      border-radius: 8px;
+      padding: 10px;
+      cursor: pointer;
+    }
+
+    .task-item.active {
+      border-color: var(--accent);
+      background: var(--accent-soft);
+    }
+
+    .task-item.done {
+      opacity: 0.74;
+    }
+
+    .task-item-topline {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 8px;
+    }
+
+    .task-title {
+      font-weight: 650;
+      word-break: break-word;
+    }
+
+    .task-meta {
+      color: var(--muted);
+      font-size: 12px;
+      margin-top: 4px;
+    }
+
+    .workspace {
+      display: grid;
+      grid-template-rows: auto 1fr;
+    }
+
+    .topline {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 14px;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      border-radius: 999px;
+      padding: 2px 8px;
+      font-size: 12px;
+      border: 1px solid var(--line);
+      color: var(--muted);
+      background: #fff;
+      white-space: nowrap;
+    }
+
+    .badge.warn {
+      color: var(--warn);
+      border-color: #fed7aa;
+      background: var(--warn-soft);
+    }
+
+    .status-badge {
+      display: inline-flex;
+      align-items: center;
+      border-radius: 999px;
+      padding: 2px 7px;
+      font-size: 11px;
+      border: 1px solid #d1d5db;
+      color: var(--muted);
+      background: #fff;
+      white-space: nowrap;
+    }
+
+    .status-badge.done {
+      color: #166534;
+      border-color: #bbf7d0;
+      background: #f0fdf4;
+    }
+
+    .status-badge.pending {
+      color: #854d0e;
+      border-color: #fde68a;
+      background: #fffbeb;
+    }
+
+    .review-grid {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) minmax(280px, 360px);
+      gap: 16px;
+      padding: 16px;
+    }
+
+    .audio-list {
+      display: grid;
+      gap: 12px;
+    }
+
+    .audio-card {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 12px;
+      background: #fbfcfd;
+    }
+
+    .audio-label {
+      color: var(--muted);
+      font-size: 12px;
+      margin-bottom: 6px;
+      word-break: break-word;
+    }
+
+    audio {
+      width: 100%;
+    }
+
+    .context {
+      margin-top: 14px;
+      display: grid;
+      gap: 8px;
+    }
+
+    .context-row {
+      display: grid;
+      grid-template-columns: 120px minmax(0, 1fr);
+      gap: 8px;
+      border-bottom: 1px solid #edf0f5;
+      padding-bottom: 8px;
+    }
+
+    .context-key {
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .context-value {
+      word-break: break-word;
+    }
+
+    .form {
+      display: grid;
+      gap: 12px;
+    }
+
+    .choice-grid,
+    .tag-grid {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .tag-groups,
+    .ab-tag-groups {
+      display: grid;
+      gap: 12px;
+    }
+
+    .tag-group,
+    .ab-tag-group {
+      display: grid;
+      gap: 8px;
+      padding-top: 8px;
+      border-top: 1px solid var(--line);
+    }
+
+    .tag-group-title,
+    .ab-tag-title {
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 650;
+    }
+
+    .choice,
+    .tag {
+      border: 1px solid var(--line);
+      background: #fff;
+      border-radius: 999px;
+      padding: 6px 10px;
+      cursor: pointer;
+    }
+
+    .choice.selected,
+    .tag.selected {
+      border-color: var(--accent);
+      background: var(--accent-soft);
+      color: #0b4f49;
+    }
+
+    select,
+    textarea {
+      width: 100%;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 8px;
+      background: #fff;
+      color: var(--ink);
+    }
+
+    textarea {
+      min-height: 96px;
+      resize: vertical;
+    }
+
+    .export-panel {
+      grid-column: 1 / -1;
+      display: grid;
+      gap: 10px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 12px;
+      background: #fbfcfd;
+    }
+
+    .export-panel textarea {
+      min-height: 180px;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+      font-size: 12px;
+    }
+
+    .export-help {
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .actions {
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .primary {
+      background: var(--accent);
+      color: #fff;
+      border: 1px solid var(--accent);
+      border-radius: 8px;
+      padding: 8px 12px;
+      cursor: pointer;
+    }
+
+    .secondary {
+      background: #fff;
+      color: var(--ink);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 8px 12px;
+      cursor: pointer;
+    }
+
+    .secondary:disabled,
+    .primary:disabled {
+      cursor: not-allowed;
+      opacity: 0.5;
+    }
+
+    details {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 10px;
+      background: #fff;
+    }
+
+    summary {
+      cursor: pointer;
+      font-weight: 650;
+    }
+
+    pre {
+      white-space: pre-wrap;
+      word-break: break-word;
+      margin: 10px 0 0;
+      color: #344054;
+      font-size: 12px;
+    }
+
+    .empty {
+      padding: 40px 16px;
+      color: var(--muted);
+      text-align: center;
+    }
+
+    @media (max-width: 860px) {
+      main,
+      .review-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .sidebar,
+      .workspace {
+        min-height: auto;
+      }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1 data-i18n="title">Review Window</h1>
+    <div class="actions">
+      <span class="badge" id="runBadge">No run loaded</span>
+      <button class="secondary" id="languageButton" type="button">中文</button>
+      <button class="secondary" id="exportButton" disabled data-i18n="exportJsonl">Export JSONL</button>
+    </div>
+  </header>
+
+  <main>
+    <aside class="panel sidebar">
+      <section class="section">
+        <h2 data-i18n="runFiles">Run Files</h2>
+        <div class="file-grid">
+          <div class="file-row">
+            <label for="tasksFile">review_tasks.jsonl</label>
+            <input id="tasksFile" type="file" accept=".jsonl,.txt">
+          </div>
+          <div class="file-row">
+            <label for="observationsFile">observations.jsonl</label>
+            <input id="observationsFile" type="file" accept=".jsonl,.txt">
+          </div>
+          <div class="file-row">
+            <label for="summaryFile">summary.json</label>
+            <input id="summaryFile" type="file" accept=".json">
+          </div>
+        </div>
+      </section>
+
+      <section class="section">
+        <h2 data-i18n="overview">Overview</h2>
+        <div class="stats">
+          <div class="stat"><strong id="taskCount">0</strong><span data-i18n="tasks">tasks</span></div>
+          <div class="stat"><strong id="doneCount">0</strong><span data-i18n="done">done</span></div>
+          <div class="stat"><strong id="pendingCount">0</strong><span data-i18n="pending">pending</span></div>
+          <div class="stat"><strong id="riskCount">0</strong><span data-i18n="riskGroups">risk groups</span></div>
+        </div>
+      </section>
+
+      <section class="section">
+        <h2 data-i18n="tasksHeading">Tasks</h2>
+        <div class="task-list" id="taskList"></div>
+      </section>
+    </aside>
+
+    <section class="panel workspace">
+      <div class="topline">
+        <div>
+          <h2 id="taskHeading"></h2>
+          <div class="task-meta" id="taskSubheading"></div>
+        </div>
+        <span class="badge warn" id="modeBadge">blind-first</span>
+      </div>
+
+      <div id="reviewBody" class="empty"></div>
+    </section>
+  </main>
+
+  <script>
+    const translations = {
+      en: {
+        title: "Review Window",
+        exportJsonl: "Export JSONL",
+        runFiles: "Run Files",
+        overview: "Overview",
+        tasks: "tasks",
+        done: "done",
+        pending: "pending",
+        riskGroups: "risk groups",
+        tasksHeading: "Tasks",
+        noRunLoaded: "No run loaded",
+        noTaskSelected: "No task selected",
+        loadTasks: "Load review tasks to begin.",
+        selectTask: "Select a task.",
+        noReviewTask: "No review task loaded.",
+        noTasksLoaded: "No tasks loaded.",
+        audio: "Audio",
+        noAudioRefs: "No audio refs.",
+        machineSignals: "Machine signals",
+        firstImpression: "First impression",
+        dimensionTags: "Dimension tags",
+        noTagsConfigured: "No tags configured.",
+        confidence: "Confidence",
+        machineAgreement: "Machine agreement",
+        notes: "Notes",
+        markSignalsSeen: "Mark signals seen",
+        clearDraft: "Clear draft",
+        saveResult: "Save result",
+        saved: "Saved",
+        exportReady: "JSONL ready",
+        copyJsonl: "Copy JSONL",
+        copied: "Copied",
+        exportHelp: "Downloads are not always available in embedded browsers. Copy this JSONL or save it as review_results.jsonl.",
+        pendingStatus: "Pending",
+        savedStatus: "Saved",
+        currentStatus: "Status",
+        runFilesFailed: "Run files failed to load",
+        aTags: "A tags",
+        bTags: "B tags",
+        sharedTags: "Shared / overall issues",
+        positiveTags: "Positive evidence",
+        issueTags: "Issues",
+        otherTags: "Other notes",
+        switchLanguage: "中文"
+      },
+      zh: {
+        title: "评估窗口",
+        exportJsonl: "导出 JSONL",
+        runFiles: "运行文件",
+        overview: "概览",
+        tasks: "任务",
+        done: "已完成",
+        pending: "待处理",
+        riskGroups: "风险组",
+        tasksHeading: "任务",
+        noRunLoaded: "未加载运行",
+        noTaskSelected: "未选择任务",
+        loadTasks: "加载评估任务后开始。",
+        selectTask: "请选择一个任务。",
+        noReviewTask: "尚未加载评估任务。",
+        noTasksLoaded: "未加载任务。",
+        audio: "音频",
+        noAudioRefs: "没有音频引用。",
+        machineSignals: "机器信号",
+        firstImpression: "第一印象",
+        dimensionTags: "维度标签",
+        noTagsConfigured: "未配置标签。",
+        confidence: "置信度",
+        machineAgreement: "机器判断一致性",
+        notes: "备注",
+        markSignalsSeen: "标记已查看机器信号",
+        clearDraft: "清除草稿",
+        saveResult: "保存结果",
+        saved: "已保存",
+        exportReady: "JSONL 已生成",
+        copyJsonl: "复制 JSONL",
+        copied: "已复制",
+        exportHelp: "内嵌浏览器不一定支持下载。请复制这里的 JSONL，或保存为 review_results.jsonl。",
+        pendingStatus: "待处理",
+        savedStatus: "已保存",
+        currentStatus: "状态",
+        runFilesFailed: "运行文件加载失败",
+        aTags: "A 的标签",
+        bTags: "B 的标签",
+        sharedTags: "共同/整体问题",
+        positiveTags: "正向证据",
+        issueTags: "问题标签",
+        otherTags: "其他标签",
+        switchLanguage: "English"
+      }
+    };
+
+    const valueLabels = {
+      en: {
+        pass: "pass",
+        acceptable_variance: "acceptable variance",
+        issue: "issue",
+        unsure: "unsure",
+        low: "low",
+        medium: "medium",
+        high: "high",
+        not_seen: "not seen",
+        agree: "agree",
+        partially_agree: "partially agree",
+        disagree: "disagree",
+        uncertain: "uncertain",
+        blind_first: "blind-first",
+        A_better: "A better",
+        B_better: "B better",
+        tie_acceptable: "tie acceptable",
+        both_bad: "both bad",
+        voice_identity_better: "better voice identity",
+        cute_style_better: "cuter style",
+        more_natural: "more natural",
+        clearer: "clearer",
+        better_pacing: "better pacing",
+        pronunciation_better: "better pronunciation",
+        less_mechanical: "less mechanical",
+        artifact_or_quality_issue: "artifact or quality issue",
+        too_fast: "too fast",
+        too_slow: "too slow",
+        identity_drift: "identity drift",
+        voice_identity_good: "voice identity good",
+        voice_identity_drift: "voice identity drift",
+        cute_style_good: "cute style good",
+        not_cute_enough: "not cute enough",
+        pronunciation_issue: "pronunciation issue",
+        speed_or_pause_issue: "speed or pause issue",
+        too_mechanical: "too mechanical",
+        clear: "clear",
+        in_character: "in character",
+        noisy: "noisy",
+        multi_speaker: "multi-speaker",
+        naturalness: "naturalness",
+        speaker_identity: "speaker identity",
+        character_style: "character style",
+        clarity: "clarity",
+        pacing: "pacing",
+        pronunciation: "pronunciation"
+      },
+      zh: {
+        pass: "通过",
+        acceptable_variance: "可接受波动",
+        issue: "有问题",
+        unsure: "不确定",
+        low: "低",
+        medium: "中",
+        high: "高",
+        not_seen: "未查看",
+        agree: "同意",
+        partially_agree: "部分同意",
+        disagree: "不同意",
+        uncertain: "不确定",
+        blind_first: "先盲评",
+        A_better: "A 更好",
+        B_better: "B 更好",
+        tie_acceptable: "都可接受",
+        both_bad: "都不合适",
+        voice_identity_better: "音色身份更像",
+        cute_style_better: "可爱亲和更好",
+        more_natural: "更自然",
+        clearer: "更清晰",
+        better_pacing: "节奏更好",
+        pronunciation_better: "发音更好",
+        less_mechanical: "更不机械",
+        artifact_or_quality_issue: "音质/瑕疵问题",
+        too_fast: "太快",
+        too_slow: "太慢",
+        identity_drift: "音色漂移",
+        voice_identity_good: "音色身份好",
+        voice_identity_drift: "音色身份漂移",
+        cute_style_good: "可爱亲和好",
+        not_cute_enough: "不够可爱亲和",
+        pronunciation_issue: "发音问题",
+        speed_or_pause_issue: "语速/停顿问题",
+        too_mechanical: "太机械",
+        clear: "清晰",
+        in_character: "符合角色",
+        noisy: "有噪声",
+        multi_speaker: "多人声",
+        naturalness: "自然度",
+        speaker_identity: "说话人身份",
+        character_style: "角色风格",
+        clarity: "清晰度",
+        pacing: "节奏",
+        pronunciation: "发音"
+      }
+    };
+
+    const state = {
+      tasks: [],
+      observations: [],
+      summary: null,
+      selectedTaskId: null,
+      lang: initialLanguage(),
+      results: new Map(),
+      drafts: new Map(),
+      exportJsonl: "",
+      exportCopied: false,
+      draft: {
+        firstDecision: "",
+        confidence: "medium",
+        tags: new Set(),
+        abTagGroups: {A: new Set(), B: new Set(), both: new Set()},
+        notes: "",
+        autoSignalsSeen: false,
+        autoSignalAgreement: "not_seen",
+        finalDecision: ""
+      }
+    };
+
+    const els = {
+      tasksFile: document.getElementById("tasksFile"),
+      observationsFile: document.getElementById("observationsFile"),
+      summaryFile: document.getElementById("summaryFile"),
+      languageButton: document.getElementById("languageButton"),
+      exportButton: document.getElementById("exportButton"),
+      runBadge: document.getElementById("runBadge"),
+      taskCount: document.getElementById("taskCount"),
+      doneCount: document.getElementById("doneCount"),
+      pendingCount: document.getElementById("pendingCount"),
+      riskCount: document.getElementById("riskCount"),
+      taskList: document.getElementById("taskList"),
+      taskHeading: document.getElementById("taskHeading"),
+      taskSubheading: document.getElementById("taskSubheading"),
+      modeBadge: document.getElementById("modeBadge"),
+      reviewBody: document.getElementById("reviewBody")
+    };
+
+    function initialLanguage() {
+      const params = new URLSearchParams(window.location.search);
+      const urlLang = params.get("lang");
+      if (urlLang === "zh" || urlLang === "en") return urlLang;
+      const savedLang = window.localStorage.getItem("review_window_lang");
+      if (savedLang === "zh" || savedLang === "en") return savedLang;
+      return navigator.language && navigator.language.toLowerCase().startsWith("zh") ? "zh" : "en";
+    }
+
+    function t(key) {
+      return translations[state.lang][key] || translations.en[key] || key;
+    }
+
+    function displayValue(value) {
+      return valueLabels[state.lang][value] || value;
+    }
+
+    function audioLabel(task, label, uri) {
+      if (task.audio_label_visibility === "label_only") return displayValue(label);
+      return `${displayValue(label)} - ${uri}`;
+    }
+
+    function emptyAbTagGroups() {
+      return {A: new Set(), B: new Set(), both: new Set()};
+    }
+
+    function isAbReviewTask(task) {
+      return task?.task_type === "voice_clone_ab_review" || (task?.choices || []).some((choice) => choice === "A_better" || choice === "B_better");
+    }
+
+    function tagGroupLabel(group) {
+      if (state.lang === "zh" && group.label_zh) return group.label_zh;
+      if (state.lang === "en" && group.label_en) return group.label_en;
+      if (group.label) return group.label;
+      return displayValue(group.id || "other");
+    }
+
+    function singleTagGroups(task) {
+      if (Array.isArray(task.tag_groups) && task.tag_groups.length) {
+        return task.tag_groups.map((group) => ({
+          id: group.id || group.label || "custom",
+          label: group.label,
+          label_en: group.label_en,
+          label_zh: group.label_zh,
+          tags: group.tags || []
+        }));
+      }
+
+      const positive = [];
+      const issues = [];
+      const other = [];
+      for (const tag of task.allowed_tags || []) {
+        if (/(good|clear$|^clear$|in_character|usable|pass|anchor|candidate|natural$|style_good|identity_good)/i.test(tag)) {
+          positive.push(tag);
+        } else if (/(issue|drift|too_|bad|noisy|unclear|mechanical|not_|artifact|slow|fast|discard|reject|negative|multi_speaker)/i.test(tag)) {
+          issues.push(tag);
+        } else {
+          other.push(tag);
+        }
+      }
+      return [
+        {id: "positive", label: t("positiveTags"), tags: positive},
+        {id: "issues", label: t("issueTags"), tags: issues},
+        {id: "other", label: t("otherTags"), tags: other}
+      ].filter((group) => group.tags.length);
+    }
+
+    function serializeAbTagGroups(groups) {
+      return {
+        A: Array.from(groups?.A || []),
+        B: Array.from(groups?.B || []),
+        both: Array.from(groups?.both || [])
+      };
+    }
+
+    function restoreAbTagGroups(value) {
+      const groups = emptyAbTagGroups();
+      for (const target of ["A", "B", "both"]) {
+        for (const tag of value?.[target] || []) {
+          groups[target].add(tag);
+        }
+      }
+      return groups;
+    }
+
+    function flattenAbTagGroups(groups) {
+      const serialized = serializeAbTagGroups(groups);
+      return Object.entries(serialized).flatMap(([target, tags]) => tags.map((tag) => `${target}:${tag}`));
+    }
+
+    function applyTranslations() {
+      document.documentElement.lang = state.lang === "zh" ? "zh-CN" : "en";
+      document.querySelectorAll("[data-i18n]").forEach((element) => {
+        element.textContent = t(element.dataset.i18n);
+      });
+      els.languageButton.textContent = t("switchLanguage");
+      els.languageButton.setAttribute("aria-label", state.lang === "zh" ? "Switch to English" : "切换到中文");
+    }
+
+    function parseJsonl(text) {
+      return text
+        .split(/\r?\n/)
+        .map((line) => line.trim())
+        .filter(Boolean)
+        .map((line) => JSON.parse(line));
+    }
+
+    function readFile(file, parser) {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => {
+          try {
+            resolve(parser(String(reader.result || "")));
+          } catch (error) {
+            reject(error);
+          }
+        };
+        reader.onerror = () => reject(reader.error);
+        reader.readAsText(file);
+      });
+    }
+
+    function resolveRunFileUrl(value) {
+      const url = new URL(value, window.location.href);
+      if (url.origin !== window.location.origin) {
+        throw new Error("Review file URLs must use the same local origin.");
+      }
+      return url.href;
+    }
+
+    async function fetchRunFile(paramName, parser) {
+      const params = new URLSearchParams(window.location.search);
+      const value = params.get(paramName);
+      if (!value) return null;
+      const response = await fetch(resolveRunFileUrl(value));
+      if (!response.ok) {
+        throw new Error(`${paramName} returned ${response.status}`);
+      }
+      return parser(await response.text());
+    }
+
+    function selectedTask() {
+      return state.tasks.find((task) => task.task_id === state.selectedTaskId) || null;
+    }
+
+    function draftToPayload(draft = state.draft) {
+      return {
+        firstDecision: draft.firstDecision || "",
+        confidence: draft.confidence || "medium",
+        tags: Array.from(draft.tags || []),
+        abTagGroups: serializeAbTagGroups(draft.abTagGroups),
+        notes: draft.notes || "",
+        autoSignalsSeen: Boolean(draft.autoSignalsSeen),
+        autoSignalAgreement: draft.autoSignalAgreement || "not_seen",
+        finalDecision: draft.finalDecision || ""
+      };
+    }
+
+    function normalizeDraftPayload(payload = {}) {
+      return {
+        firstDecision: payload.firstDecision || "",
+        confidence: payload.confidence || "medium",
+        tags: new Set(payload.tags || []),
+        abTagGroups: restoreAbTagGroups(payload.abTagGroups || payload.ab_dimension_tags),
+        notes: payload.notes || "",
+        autoSignalsSeen: Boolean(payload.autoSignalsSeen),
+        autoSignalAgreement: payload.autoSignalAgreement || "not_seen",
+        finalDecision: payload.finalDecision || ""
+      };
+    }
+
+    function draftPayloadFromResult(result = {}) {
+      const abDimensionTags = result.ab_dimension_tags || {};
+      const genericTags = (result.dimension_tags || result.tags || []).filter((tag) => !String(tag).includes(":"));
+      return {
+        firstDecision: result.first_impression?.decision || result.decision || "",
+        confidence: result.confidence || result.first_impression?.confidence || "medium",
+        tags: genericTags,
+        abTagGroups: abDimensionTags,
+        notes: result.notes || "",
+        autoSignalsSeen: Boolean(result.auto_signals_seen),
+        autoSignalAgreement: result.auto_signal_agreement || "not_seen",
+        finalDecision: result.final_decision || result.decision || ""
+      };
+    }
+
+    function resetDraft(task) {
+      const existing = state.results.get(task.task_id);
+      const cachedDraft = state.drafts.get(task.task_id);
+      state.draft = normalizeDraftPayload(existing ? draftPayloadFromResult(existing) : cachedDraft);
+    }
+
+    function reviewCacheKey() {
+      const params = new URLSearchParams(window.location.search);
+      const taskSource = params.get("tasks");
+      const runId = state.summary?.comparison_id || state.summary?.run_id || selectedTask()?.return_to_run_id || state.tasks[0]?.checkpoint_id || "manual";
+      return `heuristic_eval_review_window:${window.location.origin}${window.location.pathname}:${taskSource || runId}`;
+    }
+
+    function persistReviewCache() {
+      if (!state.tasks.length) return;
+      const payload = {
+        schema_version: "review_window.cache.v0",
+        selectedTaskId: state.selectedTaskId,
+        results: Array.from(state.results.values()),
+        drafts: Object.fromEntries(Array.from(state.drafts.entries()))
+      };
+      window.localStorage.setItem(reviewCacheKey(), JSON.stringify(payload));
+    }
+
+    function restoreReviewCache() {
+      if (!state.tasks.length) return;
+      const raw = window.localStorage.getItem(reviewCacheKey());
+      if (!raw) return;
+      try {
+        const payload = JSON.parse(raw);
+        const taskIds = new Set(state.tasks.map((task) => task.task_id));
+        state.results = new Map((payload.results || [])
+          .filter((result) => taskIds.has(result.task_id))
+          .map((result) => [result.task_id, result]));
+        state.drafts = new Map(Object.entries(payload.drafts || {})
+          .filter(([taskId]) => taskIds.has(taskId)));
+        if (taskIds.has(payload.selectedTaskId)) {
+          state.selectedTaskId = payload.selectedTaskId;
+        }
+      } catch (error) {
+        console.warn("Failed to restore review cache", error);
+      }
+    }
+
+    function persistCurrentDraft(task = selectedTask()) {
+      if (!task) return;
+      state.drafts.set(task.task_id, draftToPayload());
+      persistReviewCache();
+    }
+
+    function updateOverview() {
+      const done = state.results.size;
+      const taskCount = state.tasks.length;
+      els.taskCount.textContent = String(taskCount);
+      els.doneCount.textContent = String(done);
+      els.pendingCount.textContent = String(Math.max(0, taskCount - done));
+      els.riskCount.textContent = String(state.summary?.risk_groups?.length || 0);
+      const runId = selectedTask()?.return_to_run_id || state.summary?.run_id || t("noRunLoaded");
+      els.runBadge.textContent = runId;
+      els.exportButton.disabled = done === 0;
+    }
+
+    function renderTaskList() {
+      els.taskList.innerHTML = "";
+      if (!state.tasks.length) {
+        els.taskList.innerHTML = `<div class="empty">${escapeHtml(t("noTasksLoaded"))}</div>`;
+        return;
+      }
+      for (const task of state.tasks) {
+        const isDone = state.results.has(task.task_id);
+        const button = document.createElement("button");
+        button.className = "task-item";
+        if (task.task_id === state.selectedTaskId) button.classList.add("active");
+        if (isDone) button.classList.add("done");
+        button.innerHTML = `
+          <div class="task-item-topline">
+            <div class="task-title">${escapeHtml(task.task_id)}</div>
+            <span class="status-badge ${isDone ? "done" : "pending"}">${escapeHtml(isDone ? t("savedStatus") : t("pendingStatus"))}</span>
+          </div>
+          <div class="task-meta">${escapeHtml(task.task_type)} - ${escapeHtml(task.target_id)}</div>
+        `;
+        button.addEventListener("click", () => {
+          persistCurrentDraft();
+          state.selectedTaskId = task.task_id;
+          resetDraft(task);
+          render();
+        });
+        els.taskList.appendChild(button);
+      }
+    }
+
+    function renderReview() {
+      const task = selectedTask();
+      if (!task) {
+        els.taskHeading.textContent = t("noTaskSelected");
+        els.taskSubheading.textContent = state.tasks.length ? t("selectTask") : t("loadTasks");
+        els.reviewBody.className = "empty";
+        els.reviewBody.innerHTML = t("noReviewTask");
+        return;
+      }
+
+      els.taskHeading.textContent = task.task_id;
+      els.taskSubheading.textContent = `${task.task_type} - ${task.target_id}`;
+      els.modeBadge.textContent = displayValue(task.review_mode || "blind_first");
+      els.reviewBody.className = "review-grid";
+
+      const audioCards = Object.entries(task.audio_refs || {}).map(([label, uri]) => `
+        <div class="audio-card">
+          <div class="audio-label">${escapeHtml(audioLabel(task, label, uri))}</div>
+          <audio controls src="${escapeAttr(uri)}"></audio>
+        </div>
+      `).join("");
+
+      const contextRows = Object.entries(flattenContext(task.context || {})).map(([key, value]) => `
+        <div class="context-row">
+          <div class="context-key">${escapeHtml(key)}</div>
+          <div class="context-value">${escapeHtml(String(value))}</div>
+        </div>
+      `).join("");
+
+      const choices = (task.choices || []).map((choice) => `
+        <button class="choice ${state.draft.firstDecision === choice ? "selected" : ""}" data-choice="${escapeAttr(choice)}">${escapeHtml(displayValue(choice))}</button>
+      `).join("");
+
+      const tags = renderTagControls(task);
+
+      const relatedObservations = observationsForTask(task);
+      const isDone = state.results.has(task.task_id);
+
+      els.reviewBody.innerHTML = `
+        <div>
+          <h3>${escapeHtml(t("audio"))}</h3>
+          <div class="audio-list">${audioCards || `<div class="empty">${escapeHtml(t("noAudioRefs"))}</div>`}</div>
+          <div class="context">${contextRows}</div>
+          <details id="autoPanel" ${state.draft.autoSignalsSeen ? "open" : ""}>
+            <summary>${escapeHtml(t("machineSignals"))}</summary>
+            <pre>${escapeHtml(JSON.stringify({route_guess: task.route_guess || null, observations: relatedObservations}, null, 2))}</pre>
+          </details>
+        </div>
+        <div class="form">
+          <div>
+            <h3>${escapeHtml(t("currentStatus"))}</h3>
+            <span class="status-badge ${isDone ? "done" : "pending"}">${escapeHtml(isDone ? t("savedStatus") : t("pendingStatus"))}</span>
+          </div>
+          <div>
+            <h3>${escapeHtml(t("firstImpression"))}</h3>
+            <div class="choice-grid">${choices}</div>
+          </div>
+          <div>
+            <h3>${escapeHtml(t("dimensionTags"))}</h3>
+            <div class="tag-grid">${tags || `<span class="task-meta">${escapeHtml(t("noTagsConfigured"))}</span>`}</div>
+          </div>
+          <div>
+            <h3>${escapeHtml(t("confidence"))}</h3>
+            <select id="confidenceSelect">
+              ${["low", "medium", "high"].map((value) => `<option value="${value}" ${state.draft.confidence === value ? "selected" : ""}>${escapeHtml(displayValue(value))}</option>`).join("")}
+            </select>
+          </div>
+          <div>
+            <h3>${escapeHtml(t("machineAgreement"))}</h3>
+            <select id="agreementSelect">
+              ${["not_seen", "agree", "partially_agree", "disagree", "uncertain"].map((value) => `<option value="${value}" ${state.draft.autoSignalAgreement === value ? "selected" : ""}>${escapeHtml(displayValue(value))}</option>`).join("")}
+            </select>
+          </div>
+          <div>
+            <h3>${escapeHtml(t("notes"))}</h3>
+            <textarea id="notesInput">${escapeHtml(state.draft.notes)}</textarea>
+          </div>
+          <div class="actions">
+            <button class="secondary" id="markSeenButton">${escapeHtml(t("markSignalsSeen"))}</button>
+            <button class="secondary" id="clearDraftButton">${escapeHtml(t("clearDraft"))}</button>
+            <button class="primary" id="saveButton">${escapeHtml(t("saveResult"))}</button>
+          </div>
+        </div>
+        ${state.exportJsonl ? `
+          <div class="export-panel">
+            <h3>${escapeHtml(t("exportReady"))}</h3>
+            <div class="export-help">${escapeHtml(t("exportHelp"))}</div>
+            <textarea id="exportJsonlText" readonly>${escapeHtml(state.exportJsonl)}</textarea>
+            <div class="actions">
+              <button class="secondary" id="copyExportButton">${escapeHtml(state.exportCopied ? t("copied") : t("copyJsonl"))}</button>
+            </div>
+          </div>
+        ` : ""}
+      `;
+
+      bindReviewEvents(task);
+    }
+
+    function bindReviewEvents(task) {
+      els.reviewBody.querySelectorAll("[data-choice]").forEach((button) => {
+        button.addEventListener("click", () => {
+          state.draft.firstDecision = button.dataset.choice || "";
+          state.draft.finalDecision = state.draft.firstDecision;
+          persistCurrentDraft(task);
+          renderReview();
+        });
+      });
+
+      els.reviewBody.querySelectorAll("[data-tag]").forEach((button) => {
+        button.addEventListener("click", () => {
+          const tag = button.dataset.tag || "";
+          if (state.draft.tags.has(tag)) state.draft.tags.delete(tag);
+          else state.draft.tags.add(tag);
+          persistCurrentDraft(task);
+          renderReview();
+        });
+      });
+
+      els.reviewBody.querySelectorAll("[data-ab-tag]").forEach((button) => {
+        button.addEventListener("click", () => {
+          const target = button.dataset.abTarget || "both";
+          const tag = button.dataset.abTag || "";
+          const group = state.draft.abTagGroups[target] || state.draft.abTagGroups.both;
+          if (group.has(tag)) group.delete(tag);
+          else group.add(tag);
+          persistCurrentDraft(task);
+          renderReview();
+        });
+      });
+
+      document.getElementById("confidenceSelect").addEventListener("change", (event) => {
+        state.draft.confidence = event.target.value;
+        persistCurrentDraft(task);
+      });
+      document.getElementById("agreementSelect").addEventListener("change", (event) => {
+        state.draft.autoSignalAgreement = event.target.value;
+        persistCurrentDraft(task);
+      });
+      document.getElementById("notesInput").addEventListener("input", (event) => {
+        state.draft.notes = event.target.value;
+        persistCurrentDraft(task);
+      });
+      document.getElementById("markSeenButton").addEventListener("click", () => {
+        state.draft.autoSignalsSeen = true;
+        state.draft.autoSignalAgreement = state.draft.autoSignalAgreement === "not_seen" ? "uncertain" : state.draft.autoSignalAgreement;
+        persistCurrentDraft(task);
+        renderReview();
+      });
+      document.getElementById("clearDraftButton").addEventListener("click", () => {
+        state.drafts.delete(task.task_id);
+        state.draft = normalizeDraftPayload();
+        persistReviewCache();
+        renderReview();
+      });
+      document.getElementById("saveButton").addEventListener("click", () => {
+        saveResult(task);
+      });
+      document.getElementById("copyExportButton")?.addEventListener("click", copyExportJsonl);
+    }
+
+    function observationsForTask(task) {
+      const refs = new Set(task.auto_observations || []);
+      return state.observations.filter((observation) => refs.has(observation.observation_id));
+    }
+
+    function renderTagControls(task) {
+      if (!isAbReviewTask(task)) {
+        const groups = singleTagGroups(task);
+        if (!groups.length) return "";
+        return `
+          <div class="tag-groups">
+            ${groups.map((group) => `
+              <div class="tag-group" data-tag-group="${escapeAttr(group.id)}">
+                <div class="tag-group-title">${escapeHtml(tagGroupLabel(group))}</div>
+                <div class="tag-grid">
+                  ${(group.tags || []).map((tag) => `
+                    <button class="tag ${state.draft.tags.has(tag) ? "selected" : ""}" data-tag="${escapeAttr(tag)}">${escapeHtml(displayValue(tag))}</button>
+                  `).join("")}
+                </div>
+              </div>
+            `).join("")}
+          </div>
+        `;
+      }
+
+      const groups = [
+        ["A", t("aTags")],
+        ["B", t("bTags")],
+        ["both", t("sharedTags")]
+      ];
+      return `
+        <div class="tag-groups ab-tag-groups">
+          ${groups.map(([target, title]) => `
+            <div class="tag-group ab-tag-group" data-tag-group="${escapeAttr(target)}">
+              <div class="tag-group-title ab-tag-title">${escapeHtml(title)}</div>
+              <div class="tag-grid">
+                ${(task.allowed_tags || []).map((tag) => `
+                  <button class="tag ${state.draft.abTagGroups[target]?.has(tag) ? "selected" : ""}" data-ab-target="${escapeAttr(target)}" data-ab-tag="${escapeAttr(tag)}">${escapeHtml(displayValue(tag))}</button>
+                `).join("")}
+              </div>
+            </div>
+          `).join("")}
+        </div>
+      `;
+    }
+
+    function saveResult(task) {
+      const decision = state.draft.finalDecision || state.draft.firstDecision || "unsure";
+      const abDimensionTags = isAbReviewTask(task) ? serializeAbTagGroups(state.draft.abTagGroups) : null;
+      const dimensionTags = abDimensionTags ? flattenAbTagGroups(state.draft.abTagGroups) : Array.from(state.draft.tags);
+      const result = {
+        schema_version: "review_window.review_result.v0",
+        checkpoint_id: task.checkpoint_id || "",
+        return_to_run_id: task.return_to_run_id || "",
+        review_id: `review_result_${task.task_id}`,
+        task_id: task.task_id,
+        task_type: task.task_type,
+        reviewer_role: "human_reviewer",
+        decision,
+        confidence: state.draft.confidence,
+        tags: dimensionTags,
+        first_impression: {
+          decision,
+          confidence: state.draft.confidence,
+          auto_signals_seen: false
+        },
+        dimension_tags: dimensionTags,
+        auto_signals_seen: state.draft.autoSignalsSeen,
+        auto_signal_agreement: state.draft.autoSignalsSeen ? state.draft.autoSignalAgreement : "not_seen",
+        final_decision: decision,
+        notes: state.draft.notes
+      };
+      if (abDimensionTags) result.ab_dimension_tags = abDimensionTags;
+      state.results.set(task.task_id, result);
+      state.drafts.set(task.task_id, draftToPayload());
+      persistReviewCache();
+      render();
+    }
+
+    function exportResults() {
+      const jsonl = Array.from(state.results.values()).map((result) => JSON.stringify(result)).join("\n") + "\n";
+      state.exportJsonl = jsonl;
+      state.exportCopied = false;
+      render();
+      const blob = new Blob([jsonl], {type: "application/jsonl"});
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = "review_results.jsonl";
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      URL.revokeObjectURL(url);
+    }
+
+    async function copyExportJsonl() {
+      if (!state.exportJsonl) return;
+      try {
+        await navigator.clipboard.writeText(state.exportJsonl);
+        state.exportCopied = true;
+        renderReview();
+      } catch (error) {
+        const textarea = document.getElementById("exportJsonlText");
+        if (textarea) {
+          textarea.focus();
+          textarea.select();
+        }
+      }
+    }
+
+    function flattenContext(context, prefix = "") {
+      const rows = {};
+      for (const [key, value] of Object.entries(context)) {
+        const nextKey = prefix ? `${prefix}.${key}` : key;
+        if (value && typeof value === "object" && !Array.isArray(value)) {
+          Object.assign(rows, flattenContext(value, nextKey));
+        } else {
+          rows[nextKey] = Array.isArray(value) ? value.join(", ") : value;
+        }
+      }
+      return rows;
+    }
+
+    function escapeHtml(value) {
+      return String(value)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+    }
+
+    function escapeAttr(value) {
+      return escapeHtml(value).replace(/`/g, "&#096;");
+    }
+
+    function render() {
+      applyTranslations();
+      updateOverview();
+      renderTaskList();
+      renderReview();
+    }
+
+    els.tasksFile.addEventListener("change", async (event) => {
+      const file = event.target.files[0];
+      if (!file) return;
+      state.tasks = await readFile(file, parseJsonl);
+      state.selectedTaskId = state.tasks[0]?.task_id || null;
+      restoreReviewCache();
+      if (state.selectedTaskId) resetDraft(selectedTask());
+      render();
+    });
+
+    els.observationsFile.addEventListener("change", async (event) => {
+      const file = event.target.files[0];
+      if (!file) return;
+      state.observations = await readFile(file, parseJsonl);
+      render();
+    });
+
+    els.summaryFile.addEventListener("change", async (event) => {
+      const file = event.target.files[0];
+      if (!file) return;
+      state.summary = await readFile(file, (text) => JSON.parse(text));
+      render();
+    });
+
+    els.exportButton.addEventListener("click", exportResults);
+
+    els.languageButton.addEventListener("click", () => {
+      state.lang = state.lang === "zh" ? "en" : "zh";
+      window.localStorage.setItem("review_window_lang", state.lang);
+      const url = new URL(window.location.href);
+      url.searchParams.set("lang", state.lang);
+      window.history.replaceState(null, "", url);
+      render();
+    });
+
+    async function loadRunFromUrl() {
+      const params = new URLSearchParams(window.location.search);
+      if (!params.has("tasks") && !params.has("observations") && !params.has("summary")) {
+        render();
+        return;
+      }
+
+      try {
+        const [tasks, observations, summary] = await Promise.all([
+          fetchRunFile("tasks", parseJsonl),
+          fetchRunFile("observations", parseJsonl),
+          fetchRunFile("summary", (text) => JSON.parse(text))
+        ]);
+        if (tasks) {
+          state.tasks = tasks;
+          state.selectedTaskId = state.tasks[0]?.task_id || null;
+        }
+        if (observations) state.observations = observations;
+        if (summary) state.summary = summary;
+        restoreReviewCache();
+        if (state.selectedTaskId) resetDraft(selectedTask());
+        render();
+      } catch (error) {
+        render();
+        els.taskHeading.textContent = t("runFilesFailed");
+        els.taskSubheading.textContent = String(error.message || error);
+      }
+    }
+
+    loadRunFromUrl();
+  </script>
+</body>
+</html>

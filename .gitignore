@@ -6,6 +6,7 @@
 .venv/
 .conda/
 node_modules/
+.promptfoo/
 __pycache__/
 **/__pycache__/
 *.pyc
@@ -35,3 +36,9 @@ eval_datasets/**/local/
 eval_datasets/**/*.local.*
 eval_datasets/**/*.private.*
 eval_datasets/**/*.secret.*
+!eval_datasets/templates/**/*.local.example.json
+
+# Workspace-local capability registries can point to private models, runners,
+# prompts, eval outputs, and audio assets.
+.heuristic-eval.local/
+**/.heuristic-eval.local/

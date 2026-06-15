@@ -9717,15 +9717,139 @@ band.
             payload = json.loads(path.read_text(encoding="utf-8"))
             text = json.dumps(payload)
             self.assertIn("sample_character", text)
-            self.assertNotIn("TapDoki", text)
-            self.assertNotIn("Slowpoke", text)
-            self.assertNotIn("child_puzzle", text)
+            self.assertNotIn("/Users/", text)
+            self.assertNotIn("private_voice_evals", text)
+            self.assertNotIn(".promptfoo", text)
             self.assertNotIn("secret", text.lower())
             self.assertNotIn("token", text.lower())
 
             for value in self._walk_json_values(payload):
                 if isinstance(value, str) and value.endswith(".wav"):
                     self.assertTrue(value.startswith("local://"), value)
+
+    def test_capability_registry_examples_are_public_safe(self) -> None:
+        paths = [
+            ROOT / "eval_datasets" / "templates" / "capabilities.local.example.json",
+            ROOT
+            / "eval_datasets"
+            / "examples"
+            / "voice_clone_asset_minimal"
+            / "capabilities.sample.json",
+        ]
+
+        for path in paths:
+            payload = json.loads(path.read_text(encoding="utf-8"))
+            self.assertEqual(payload["schema_version"], "heuristic_eval.capability_registry.v0")
+            self.assertIn("capabilities", payload)
+            self.assertGreaterEqual(len(payload["capabilities"]), 4)
+            text = json.dumps(payload)
+            forbidden = [
+                "/Users/",
+                "private_voice_evals",
+                ".promptfoo",
+                "bearer ",
+                "api_key",
+            ]
+            for needle in forbidden:
+                self.assertNotIn(needle, text)
+            self.assertNotIn("token", text.lower())
+            self.assertNotIn("secret", text.lower())
+
+            for capability in payload["capabilities"]:
+                self.assertIn("id", capability)
+                self.assertIn("kind", capability)
+                self.assertIn("mode", capability)
+                self.assertIn("signals", capability)
+                self.assertIn("privacy", capability)
+                self.assertEqual(capability["privacy"], "local_only")
+                self.assertIn("runner", capability)
+                self.assertIn("blocked_uses", capability)
+
+    def test_voice_clone_asset_run_example_architecture(self) -> None:
+        run_dir = ROOT / "eval_datasets" / "examples" / "voice_clone_asset_minimal" / "run_example"
+        expected_files = {
+            "manifest.json",
+            "outputs.jsonl",
+            "observations.jsonl",
+            "review_tasks.jsonl",
+            "review_results.jsonl",
+            "route_decisions.jsonl",
+            "summary.json",
+            "summary.md",
+        }
+        self.assertEqual(expected_files, {path.name for path in run_dir.iterdir() if path.is_file()})
+
+        manifest = json.loads((run_dir / "manifest.json").read_text(encoding="utf-8"))
+        self.assertEqual(manifest["schema_version"], "voice_clone_asset.voice_output_run.v0")
+        self.assertEqual(manifest["profile"], "voice_clone_asset")
+        self.assertEqual(manifest["character_id"], "sample_character")
+        self.assertIn(manifest["source_type"], {"tts_clone_api", "audio_files", "audio_generation_model", "ab_candidates"})
+        self.assertIn(manifest["input_mode"], {"text_to_audio", "audio_only", "prompt_to_audio", "pairwise_audio"})
+
+        outputs = self._read_jsonl(run_dir / "outputs.jsonl")
+        observations = self._read_jsonl(run_dir / "observations.jsonl")
+        review_tasks = self._read_jsonl(run_dir / "review_tasks.jsonl")
+        review_results = self._read_jsonl(run_dir / "review_results.jsonl")
+        routes = self._read_jsonl(run_dir / "route_decisions.jsonl")
+        summary = json.loads((run_dir / "summary.json").read_text(encoding="utf-8"))
+
+        self.assertEqual(len(outputs), manifest["counts"]["outputs"])
+        self.assertEqual(len(observations), manifest["counts"]["observations"])
+        self.assertEqual(len(review_tasks), manifest["counts"]["review_tasks"])
+        self.assertEqual(len(review_results), manifest["counts"]["review_results"])
+        self.assertEqual(len(routes), manifest["counts"]["route_decisions"])
+        self.assertEqual(summary["checkpoint_status"], "awaiting_human_review")
+
+        capability_ids = {record["capability_id"] for record in observations}
+        self.assertIn("local.audio_qc.vad", capability_ids)
+        self.assertIn("local.audio_quality.no_reference", capability_ids)
+        self.assertIn("local.audio_judge.speech_attributes", capability_ids)
+        self.assertIn("local.audio_judge.naturalness_preference", capability_ids)
+
+        for task in review_tasks:
+            self.assertEqual(task["review_mode"], "blind_first")
+            self.assertEqual(task["auto_signal_visibility"], "collapsed")
+            self.assertEqual(task["return_to_run_id"], manifest["run_id"])
+            self.assertIn("checkpoint_id", task)
+
+        result = review_results[0]
+        self.assertFalse(result["first_impression"]["auto_signals_seen"])
+        self.assertTrue(result["auto_signals_seen"])
+        self.assertEqual(result["return_to_run_id"], manifest["run_id"])
+
+        route = routes[0]
+        self.assertEqual(route["primary_failure"], "speed_regression")
+        self.assertIn("observed_issue", route)
+        self.assertIn("suspected_layer", route)
+        self.assertIn("confirmed_layer", route)
+        self.assertEqual(route["feedback_usefulness"]["status"], "unknown")
+
+    def test_voice_clone_asset_run_example_is_public_safe(self) -> None:
+        run_dir = ROOT / "eval_datasets" / "examples" / "voice_clone_asset_minimal" / "run_example"
+        combined = "\n".join(path.read_text(encoding="utf-8") for path in sorted(run_dir.iterdir()) if path.is_file())
+        forbidden = [
+            "/Users/",
+            "private_voice_evals",
+            ".promptfoo",
+            "bearer ",
+            "api_key",
+        ]
+        for needle in forbidden:
+            self.assertNotIn(needle, combined)
+        self.assertNotIn("token", combined.lower())
+        self.assertNotIn("secret", combined.lower())
+
+        for path in sorted(run_dir.glob("*.json")):
+            payload = json.loads(path.read_text(encoding="utf-8"))
+            for value in self._walk_json_values(payload):
+                if isinstance(value, str) and value.endswith(".wav"):
+                    self.assertTrue(value.startswith("local://"), value)
+
+        for path in sorted(run_dir.glob("*.jsonl")):
+            for payload in self._read_jsonl(path):
+                for value in self._walk_json_values(payload):
+                    if isinstance(value, str) and value.endswith(".wav"):
+                        self.assertTrue(value.startswith("local://"), value)
 
     def test_voice_clone_asset_route_blocks_wrong_layer_fixes(self) -> None:
         route = json.loads(
@@ -9760,10 +9884,82 @@ band.
             payload = json.loads(path.read_text(encoding="utf-8"))
             self.assertEqual(payload["profile"], "voice_clone_asset")
             self.assertIn(payload["task_type"], {"source_clip_review", "clone_ab_review", "output_issue_review"})
+            self.assertIn("checkpoint_id", payload)
+            self.assertIn("return_to_run_id", payload)
+            self.assertEqual(payload["review_mode"], "blind_first")
+            self.assertEqual(payload["auto_signal_visibility"], "collapsed")
+            self.assertIn("allowed_tags", payload)
+            self.assertGreater(len(payload["allowed_tags"]), 0)
+            self.assertIn("tag_groups", payload)
+            grouped_tags = {
+                tag
+                for group in payload["tag_groups"]
+                for tag in group.get("tags", [])
+            }
+            self.assertTrue(set(payload["allowed_tags"]).issubset(grouped_tags))
             self.assertIsInstance(payload["audio_refs"], dict)
             self.assertTrue(payload["audio_refs"])
             for audio_ref in payload["audio_refs"].values():
                 self.assertTrue(audio_ref.startswith("local://"), audio_ref)
+
+    def test_review_window_web_is_local_file_backed_checkpoint(self) -> None:
+        web_dir = ROOT / "eval_datasets" / "review_window" / "web"
+        index = web_dir / "index.html"
+        readme = web_dir / "README.md"
+
+        self.assertTrue(index.exists())
+        self.assertTrue(readme.exists())
+
+        html = index.read_text(encoding="utf-8")
+        readme_text = readme.read_text(encoding="utf-8")
+        combined = html + "\n" + readme_text
+
+        self.assertIn("review_tasks.jsonl", combined)
+        self.assertIn("observations.jsonl", combined)
+        self.assertIn("summary.json", combined)
+        self.assertIn("review_results.jsonl", combined)
+        self.assertIn("blind-first", combined)
+        self.assertIn("auto_signals_seen", html)
+        self.assertIn("return_to_run_id", html)
+        self.assertIn("checkpoint_id", html)
+        self.assertIn("Blob", html)
+        self.assertIn("URLSearchParams", html)
+        self.assertIn("fetchRunFile", html)
+        self.assertIn("resolveRunFileUrl", html)
+        self.assertIn("translations", html)
+        self.assertIn("initialLanguage", html)
+        self.assertIn("languageButton", html)
+        self.assertIn("status-badge", html)
+        self.assertIn("pendingStatus", html)
+        self.assertIn("savedStatus", html)
+        self.assertIn("currentStatus", html)
+        self.assertIn("reviewCacheKey", html)
+        self.assertIn("persistReviewCache", html)
+        self.assertIn("restoreReviewCache", html)
+        self.assertIn("clearDraftButton", html)
+        self.assertIn("export-panel", html)
+        self.assertIn("exportJsonlText", html)
+        self.assertIn("copyExportButton", html)
+        self.assertIn("copyExportJsonl", html)
+        self.assertIn("ab_dimension_tags", html)
+        self.assertIn("abTagGroups", html)
+        self.assertIn("A 的标签", html)
+        self.assertIn("B 的标签", html)
+        self.assertIn("singleTagGroups", html)
+        self.assertIn("tag_groups", combined)
+        self.assertIn("正向证据", html)
+        self.assertIn("问题标签", html)
+        self.assertIn("lang=zh", readme_text)
+        self.assertIn("lang=en", readme_text)
+        self.assertIn("tasks=", readme_text)
+        self.assertIn("same-origin", readme_text)
+        self.assertIn("评估窗口", html)
+        self.assertIn("Review Window", html)
+        self.assertNotIn("/Users/", combined)
+        self.assertNotIn("private_voice_evals", combined)
+        self.assertNotIn(".promptfoo", combined)
+        self.assertNotIn("api_key", combined.lower())
+        self.assertNotIn("bearer ", combined.lower())
 
     def test_voice_clone_asset_docs_keep_public_data_boundary(self) -> None:
         paths = [
@@ -9790,6 +9986,13 @@ band.
                 values.extend(self._walk_json_values(child))
             return values
         return [value]
+
+    def _read_jsonl(self, path: Path) -> list[dict[str, Any]]:
+        records = []
+        for line in path.read_text(encoding="utf-8").splitlines():
+            if line.strip():
+                records.append(json.loads(line))
+        return records
 
 
 if __name__ == "__main__":

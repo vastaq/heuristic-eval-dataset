@@ -19,6 +19,12 @@
     "review_id": {
       "type": "string"
     },
+    "checkpoint_id": {
+      "type": "string"
+    },
+    "return_to_run_id": {
+      "type": "string"
+    },
     "task_id": {
       "type": "string"
     },
@@ -39,6 +45,53 @@
       "items": {
         "type": "string"
       }
+    },
+    "first_impression": {
+      "type": "object"
+    },
+    "dimension_tags": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "ab_dimension_tags": {
+      "type": "object",
+      "properties": {
+        "A": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "B": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "both": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "additionalProperties": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        }
+      }
+    },
+    "auto_signals_seen": {
+      "type": "boolean"
+    },
+    "auto_signal_agreement": {
+      "type": "string"
+    },
+    "final_decision": {
+      "type": "string"
     },
     "notes": {
       "type": "string"

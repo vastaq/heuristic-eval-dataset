@@ -1,0 +1,53 @@
+{
+  "schema_version": "voice_clone_asset.run_summary.v0",
+  "run_id": "sample_character_voice_run_001",
+  "profile": "voice_clone_asset",
+  "character_id": "sample_character",
+  "checkpoint_status": "awaiting_human_review",
+  "counts": {
+    "outputs": 3,
+    "observations": 8,
+    "review_tasks": 2,
+    "review_results": 1,
+    "route_decisions": 1
+  },
+  "judge_layers": {
+    "light": [
+      "local.audio_qc.vad",
+      "local.audio_quality.no_reference"
+    ],
+    "optional_heavy": [
+      "local.audio_judge.speech_attributes",
+      "local.audio_judge.naturalness_preference"
+    ],
+    "human_checkpoint": [
+      "local.human_review.voice_clone_spot_check"
+    ]
+  },
+  "risk_groups": [
+    {
+      "risk": "speed_regression",
+      "output_ids": [
+        "sample_character_out_002"
+      ],
+      "status": "human_confirmed"
+    },
+    {
+      "risk": "character_style_uncertain",
+      "output_ids": [
+        "sample_character_out_003"
+      ],
+      "status": "awaiting_human_review"
+    }
+  ],
+  "blocked_actions": [
+    "do_not_add_random_source_audio",
+    "do_not_replace_clone_model_blindly",
+    "do_not_promote_version_from_metric_only_evidence"
+  ],
+  "next_actions": [
+    "complete_review_task_out_003",
+    "compress_remaining_human_results_into_route_decisions",
+    "keep_feedback_usefulness_unknown_until_later_run"
+  ]
+}

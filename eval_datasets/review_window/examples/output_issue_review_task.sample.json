@@ -1,5 +1,7 @@
 {
   "schema_version": "heuristic_eval.review_task.v0",
+  "checkpoint_id": "checkpoint_output_issue_0001",
+  "return_to_run_id": "sample_character_output_run_001",
   "task_id": "task_output_0001",
   "task_type": "output_issue_review",
   "profile": "voice_clone_asset",
@@ -19,6 +21,33 @@
     "needs_revision",
     "reject",
     "uncertain"
+  ],
+  "review_mode": "blind_first",
+  "auto_signal_visibility": "collapsed",
+  "allowed_tags": [
+    "too_fast",
+    "bad_pause",
+    "unnatural",
+    "unclear",
+    "speaker_identity_drift",
+    "character_style_drift",
+    "pronunciation_issue"
+  ],
+  "tag_groups": [
+    {
+      "id": "issues",
+      "label": "Issues",
+      "label_zh": "问题标签",
+      "tags": [
+        "too_fast",
+        "bad_pause",
+        "unnatural",
+        "unclear",
+        "speaker_identity_drift",
+        "character_style_drift",
+        "pronunciation_issue"
+      ]
+    }
   ],
   "evidence_refs": [
     "regression_result.sample.json"

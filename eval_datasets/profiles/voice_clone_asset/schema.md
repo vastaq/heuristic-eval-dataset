@@ -8,6 +8,105 @@ development. Do not commit real audio, transcripts, speaker identities, or clone
 outputs to the public framework repo unless they are intentionally licensed and
 scrubbed.
 
+## Voice Output Run
+
+Use this as the broad intake for generated or imported voice outputs. It should
+not assume every output came from a provider `voice_id`.
+
+```json
+{
+  "schema_version": "voice_clone_asset.voice_output_run.v0",
+  "run_id": "sample_character_voice_run_001",
+  "profile": "voice_clone_asset",
+  "character_id": "sample_character",
+  "source_type": "tts_clone_api",
+  "input_mode": "text_to_audio",
+  "generation_ref": {
+    "kind": "provider_request_placeholder",
+    "voice_ref": {
+      "kind": "provider_voice_id",
+      "id": "placeholder_voice_ref"
+    }
+  },
+  "files": {
+    "outputs": "outputs.jsonl",
+    "observations": "observations.jsonl",
+    "review_tasks": "review_tasks.jsonl",
+    "review_results": "review_results.jsonl",
+    "route_decisions": "route_decisions.jsonl",
+    "summary": "summary.json"
+  }
+}
+```
+
+Allowed `source_type` values should stay broad:
+
+- `tts_clone_api`
+- `audio_files`
+- `audio_generation_model`
+- `ab_candidates`
+
+Allowed `input_mode` values:
+
+- `text_to_audio`
+- `audio_only`
+- `prompt_to_audio`
+- `pairwise_audio`
+
+## Voice Output Record
+
+```json
+{
+  "schema_version": "voice_clone_asset.voice_output.v0",
+  "run_id": "sample_character_voice_run_001",
+  "output_id": "sample_character_out_001",
+  "character_id": "sample_character",
+  "test_item_id": "neutral_short_001",
+  "source_type": "tts_clone_api",
+  "input_mode": "text_to_audio",
+  "text": "We can take this one step at a time.",
+  "audio_uri": "local://outputs/sample_character_voice_run_001/out_001.wav",
+  "generation_ref": {
+    "kind": "provider_voice_id",
+    "id": "placeholder_voice_ref"
+  },
+  "expected_behavior": ["clear", "normal_pacing", "warm_style"]
+}
+```
+
+## Judge Observation
+
+Judge output should become a diagnostic observation. It is not acceptance,
+rejection, or source-pack mutation evidence by itself.
+
+```json
+{
+  "schema_version": "heuristic_eval.observation.v0",
+  "run_id": "sample_character_voice_run_001",
+  "observation_id": "obs_out_002_rate",
+  "output_id": "sample_character_out_002",
+  "character_id": "sample_character",
+  "capability_id": "local.audio_judge.speech_attributes",
+  "capability_kind": "audio_judge",
+  "cost_tier": "high",
+  "signal": "speech_rate_label",
+  "value": "fast",
+  "interpretation": "possible_speed_regression",
+  "confidence": "low",
+  "observed_issue": "too_fast",
+  "suspected_layer": "clone_output",
+  "confirmed_layer": null,
+  "evidence_ref": "outputs.jsonl#sample_character_out_002",
+  "blocked_uses": [
+    "automatic_gate_promotion",
+    "source_pack_mutation_without_human_review"
+  ]
+}
+```
+
+Use light capabilities for default diagnostics and optional heavy capabilities
+only when the run needs deeper labeling or A/B preference evidence.
+
 ## Source Clip Report
 
 ```json

@@ -51,6 +51,12 @@ A failed clone eval should answer:
 - `review_task`: a human listening task for source clips, clone A/B comparison,
   or output issue diagnosis.
 - `route_decision`: the compressed decision after evidence review.
+- `voice_output_run`: one batch of generated or imported voice outputs being
+  evaluated.
+- `judge_observation`: one diagnostic signal from local QC, VAD, no-reference
+  quality, audio LLM labels, pairwise preference, or another capability.
+- `human_checkpoint`: a targeted human review step created by the agent and
+  returned to the same run.
 
 ## Required Fields
 
@@ -73,6 +79,33 @@ reuse conversation-role fields unless they truly belong to the voice workflow.
 - `rubric_ref`: profile-local rubric key.
 - `source_path`: source manifest, report, or run path.
 - `review_status`: candidate, needs_revision, accepted, or retired.
+
+## Run Architecture
+
+Use `voice_output_run` as the main intake for clone outputs and adjacent voice
+generation workflows. A run may start from a clone/TTS API, existing audio
+files, an end-to-end audio model, or A/B candidate outputs. Normalize those
+sources into output records before judging them.
+
+Recommended run files:
+
+- `manifest.json`: run identity, profile, source type, input mode, and file
+  refs.
+- `outputs.jsonl`: normalized audio outputs with optional text, prompt, model,
+  and voice refs.
+- `observations.jsonl`: diagnostic judge signals from local capabilities.
+- `review_tasks.jsonl`: agent-created human checkpoint tasks.
+- `review_results.jsonl`: human checkpoint results.
+- `route_decisions.jsonl`: compressed routing decisions after evidence review.
+- `summary.json` and `summary.md`: global state for the agent and human reader.
+
+Judge observations are evidence, not truth. Store capability output with
+`observed_issue`, `suspected_layer`, `confirmed_layer`, `confidence`, and
+`blocked_uses` so later agents know what the signal can and cannot prove.
+
+Human review is part of the agent loop. The agent creates targeted tasks,
+waits for the checkpoint result, then resumes the run and writes route
+decisions. Do not treat the review window as a separate annotation project.
 
 ## List Fields
 

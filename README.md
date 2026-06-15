@@ -69,6 +69,15 @@ examples, clone-version regression, human A/B review, and routing failures to
 the right layer. It does not include real audio or claim fully automatic voice
 quality judgment.
 
+Optional local tools should be exposed through capability registries, not hard
+coded into public docs. The public template
+`eval_datasets/templates/capabilities.local.example.json` shows how a downstream
+workspace can tell an agent that local VAD, no-reference quality, audio-LLM
+judge, pairwise preference, or human-review capabilities are available without
+committing private model paths or audio assets. Copy it to a gitignored local
+path such as `.heuristic-eval.local/capabilities.json` and replace placeholders
+with project-local runners.
+
 Use three layers:
 
 - **Framework**: shared concepts such as run intake, learning state, reward
@@ -328,6 +337,11 @@ placeholders:
 - `eval_datasets/seeds/`
 - `eval_datasets/experiments/`
 - `eval_datasets/replay/outputs/`
+
+Local capability registries also stay private by default:
+
+- `.heuristic-eval.local/capabilities.json`
+- `eval_datasets/**/*.local.*`
 - `eval_datasets/evolution/events.jsonl`
 - `eval_datasets/evolution/failure_patterns/`
 

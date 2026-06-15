@@ -1,0 +1,312 @@
+{
+  "schema_version": "heuristic_eval.capability_registry.v0",
+  "registry_id": "example_local_capabilities",
+  "scope": "local_workspace",
+  "description": "Example capability registry for agent-discoverable local evaluators. Copy this file outside git-tracked paths and replace placeholders with local runners.",
+  "privacy_policy": {
+    "commit_policy": "example_only",
+    "local_registry_recommendation": ".heuristic-eval.local/capabilities.json",
+    "do_not_commit": [
+      "real model paths",
+      "private audio paths",
+      "speaker names",
+      "API keys",
+      "signed URLs",
+      "private prompts"
+    ]
+  },
+  "agent_usage": {
+    "selection_rule": "Select capabilities by kind, mode, signals, inputs, cost_tier, and status. Do not select by private model name.",
+    "default_order": [
+      "low_cost_diagnostics",
+      "optional_deep_judge",
+      "human_review"
+    ],
+    "evidence_rule": "Capability output is observation evidence. It is not automatic acceptance, rejection, or source-pack mutation."
+  },
+  "capabilities": [
+    {
+      "id": "local.audio_qc.vad",
+      "kind": "audio_qc",
+      "mode": "pointwise",
+      "status": "available",
+      "cost_tier": "low",
+      "privacy": "local_only",
+      "signals": [
+        "voice_activity",
+        "speech_segments",
+        "pause_ratio",
+        "leading_trailing_silence"
+      ],
+      "inputs": {
+        "required": [
+          "audio_uri"
+        ],
+        "optional": [
+          "expected_sample_rate"
+        ]
+      },
+      "outputs": {
+        "format": "heuristic_eval.observations.v0",
+        "fields": [
+          "speech_segments",
+          "speech_ratio",
+          "pause_ratio",
+          "warnings"
+        ]
+      },
+      "runner": {
+        "kind": "local_command",
+        "command_template": [
+          "python3",
+          "${HEURISTIC_EVAL_AUDIO_RUNNERS}/vad_runner.py",
+          "--input",
+          "${INPUT_JSON}",
+          "--output",
+          "${OUTPUT_JSONL}"
+        ]
+      },
+      "blocked_uses": [
+        "speaker_identity_decision",
+        "style_decision",
+        "source_pack_mutation"
+      ]
+    },
+    {
+      "id": "local.audio_quality.no_reference",
+      "kind": "audio_quality",
+      "mode": "pointwise",
+      "status": "available",
+      "cost_tier": "low",
+      "privacy": "local_only",
+      "signals": [
+        "no_reference_quality",
+        "estimated_intelligibility",
+        "estimated_distortion"
+      ],
+      "inputs": {
+        "required": [
+          "audio_uri"
+        ],
+        "optional": [
+          "text"
+        ]
+      },
+      "outputs": {
+        "format": "heuristic_eval.observations.v0",
+        "fields": [
+          "quality_proxy",
+          "intelligibility_proxy",
+          "distortion_proxy",
+          "confidence"
+        ]
+      },
+      "runner": {
+        "kind": "local_command",
+        "command_template": [
+          "python3",
+          "${HEURISTIC_EVAL_AUDIO_RUNNERS}/no_reference_quality_runner.py",
+          "--input",
+          "${INPUT_JSON}",
+          "--output",
+          "${OUTPUT_JSONL}"
+        ]
+      },
+      "blocked_uses": [
+        "final_voice_quality_claim",
+        "speaker_identity_decision",
+        "role_identity_decision"
+      ]
+    },
+    {
+      "id": "local.audio_judge.speech_attributes",
+      "kind": "audio_judge",
+      "mode": "pointwise",
+      "status": "optional",
+      "cost_tier": "high",
+      "privacy": "local_only",
+      "signals": [
+        "speech_rate_label",
+        "speech_clarity_label",
+        "recording_quality_label",
+        "speaking_style_label"
+      ],
+      "inputs": {
+        "required": [
+          "audio_uri"
+        ],
+        "optional": [
+          "text",
+          "rubric_prompt",
+          "calibration_examples"
+        ]
+      },
+      "outputs": {
+        "format": "heuristic_eval.observations.v0",
+        "fields": [
+          "label",
+          "short_reason",
+          "confidence",
+          "model_uncertainty"
+        ]
+      },
+      "runner": {
+        "kind": "local_command",
+        "command_template": [
+          "python3",
+          "${HEURISTIC_EVAL_AUDIO_RUNNERS}/audio_llm_attributes_runner.py",
+          "--input",
+          "${INPUT_JSON}",
+          "--output",
+          "${OUTPUT_JSONL}"
+        ],
+        "model_ref_env": "HEURISTIC_EVAL_AUDIO_LLM_MODEL"
+      },
+      "blocked_uses": [
+        "automatic_gate_promotion",
+        "source_pack_mutation_without_human_review",
+        "single_sample_prompt_or_policy_change"
+      ]
+    },
+    {
+      "id": "local.audio_judge.human_likeness",
+      "kind": "audio_judge",
+      "mode": "pointwise",
+      "status": "optional",
+      "cost_tier": "high",
+      "privacy": "local_only",
+      "signals": [
+        "human_likeness",
+        "naturalness",
+        "machine_like_artifact"
+      ],
+      "inputs": {
+        "required": [
+          "audio_uri"
+        ],
+        "optional": [
+          "text",
+          "language",
+          "domain"
+        ]
+      },
+      "outputs": {
+        "format": "heuristic_eval.observations.v0",
+        "fields": [
+          "naturalness_score",
+          "human_likeness_score",
+          "artifact_tags",
+          "confidence"
+        ]
+      },
+      "runner": {
+        "kind": "local_command",
+        "command_template": [
+          "python3",
+          "${HEURISTIC_EVAL_AUDIO_RUNNERS}/human_likeness_runner.py",
+          "--input",
+          "${INPUT_JSON}",
+          "--output",
+          "${OUTPUT_JSONL}"
+        ],
+        "model_ref_env": "HEURISTIC_EVAL_HUMAN_LIKENESS_MODEL"
+      },
+      "blocked_uses": [
+        "speaker_similarity_claim",
+        "character_identity_claim",
+        "final_clone_version_decision_without_context"
+      ]
+    },
+    {
+      "id": "local.audio_judge.naturalness_preference",
+      "kind": "audio_judge",
+      "mode": "pairwise",
+      "status": "optional",
+      "cost_tier": "high",
+      "privacy": "local_only",
+      "signals": [
+        "naturalness_preference",
+        "prosody_preference",
+        "clarity_preference",
+        "pacing_preference"
+      ],
+      "inputs": {
+        "required": [
+          "audio_uri_a",
+          "audio_uri_b"
+        ],
+        "optional": [
+          "text",
+          "comparison_rubric",
+          "position_bias_mitigation"
+        ]
+      },
+      "outputs": {
+        "format": "heuristic_eval.observations.v0",
+        "fields": [
+          "preferred_candidate",
+          "preference_strength",
+          "dimension_votes",
+          "short_reason",
+          "confidence"
+        ]
+      },
+      "runner": {
+        "kind": "local_command",
+        "command_template": [
+          "python3",
+          "${HEURISTIC_EVAL_AUDIO_RUNNERS}/pairwise_naturalness_runner.py",
+          "--input",
+          "${INPUT_JSON}",
+          "--output",
+          "${OUTPUT_JSONL}"
+        ],
+        "model_ref_env": "HEURISTIC_EVAL_PAIRWISE_AUDIO_JUDGE_MODEL"
+      },
+      "blocked_uses": [
+        "absolute_quality_score",
+        "speaker_identity_decision",
+        "version_promotion_without_regression_bank"
+      ]
+    },
+    {
+      "id": "local.human_review.voice_clone_spot_check",
+      "kind": "human_review",
+      "mode": "pointwise_or_pairwise",
+      "status": "available",
+      "cost_tier": "human",
+      "privacy": "local_only",
+      "signals": [
+        "speaker_identity",
+        "character_style",
+        "pronunciation",
+        "acceptable_variance",
+        "final_route_confirmation"
+      ],
+      "inputs": {
+        "required": [
+          "review_task_json"
+        ],
+        "optional": [
+          "audio_refs",
+          "rubric",
+          "auto_observations"
+        ]
+      },
+      "outputs": {
+        "format": "review_window.review_result.v0",
+        "fields": [
+          "decision",
+          "confidence",
+          "tags",
+          "notes"
+        ]
+      },
+      "runner": {
+        "kind": "manual_or_local_ui",
+        "entrypoint_hint": "Use eval_datasets/review_window/ task and result JSON."
+      },
+      "blocked_uses": []
+    }
+  ]
+}

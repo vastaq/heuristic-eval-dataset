@@ -1,5 +1,7 @@
 {
   "schema_version": "heuristic_eval.review_task.v0",
+  "checkpoint_id": "checkpoint_source_review_0001",
+  "return_to_run_id": "sample_character_source_review_run_001",
   "task_id": "task_source_0001",
   "task_type": "source_clip_review",
   "profile": "voice_clone_asset",
@@ -21,6 +23,36 @@
     "negative_bank",
     "discard",
     "uncertain"
+  ],
+  "review_mode": "blind_first",
+  "auto_signal_visibility": "collapsed",
+  "allowed_tags": [
+    "clear",
+    "in_character",
+    "noisy",
+    "too_fast",
+    "multi_speaker"
+  ],
+  "tag_groups": [
+    {
+      "id": "positive",
+      "label": "Positive evidence",
+      "label_zh": "正向证据",
+      "tags": [
+        "clear",
+        "in_character"
+      ]
+    },
+    {
+      "id": "issues",
+      "label": "Issues",
+      "label_zh": "问题标签",
+      "tags": [
+        "noisy",
+        "too_fast",
+        "multi_speaker"
+      ]
+    }
   ],
   "evidence_refs": [
     "source_clip_report.sample.json"
